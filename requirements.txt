@@ -1,0 +1,9 @@
+# Core dependencies for the formal verification training pipeline
+torch>=2.0
+transformers>=4.40
+datasets
+aiohttp
+requests
+matplotlib
+wandb
+lean-dojo>=4.0

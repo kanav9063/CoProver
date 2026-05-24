@@ -1,0 +1,53 @@
+# Generator GRPO Training Configuration
+# Used with SLIME for whole-proof GRPO on Lean4
+
+model:
+  name: DeepSeek-Prover-V2-7B
+  path: /workspace/models/DeepSeek-Prover-V2-7B
+  megatron_path: /workspace/models/DeepSeek-Prover-V2-7B_torch_dist
+  architecture: LlamaForCausalLM
+  num_layers: 30
+  hidden_size: 4096
+  num_attention_heads: 32
+  vocab_size: 102400
+
+training:
+  advantage_estimator: grpo
+  learning_rate: 1e-6
+  lr_schedule: constant
+  weight_decay: 0.01
+  optimizer: adam
+  adam_beta1: 0.9
+  adam_beta2: 0.98
+  eps_clip: 0.2
+  eps_clip_high: 0.28
+  kl_loss_coef: 0.0
+  calculate_per_token_loss: true
+  num_rollout: 500
+  save_interval: 50
+
+rollout:
+  batch_size: 64
+  n_samples_per_prompt: 8
+  max_response_len: 4096
+  temperature: 1.0
+
+data:
+  train_path: /workspace/training/data/lean_whole_proof.jsonl
+  input_key: prompt
+  label_key: label
+  metadata_key: metadata
+
+reward:
+  type: custom
+  path: training.lean_reward.compute_reward
+  server: http://172.17.0.1:8000/api/check
+
+hardware:
+  actor_gpus: 4
+  rollout_gpus: 4
+  tensor_parallel: 2
+
+wandb:
+  project: lean-step-grpo
+  group: deepseek-prover-v2-7b

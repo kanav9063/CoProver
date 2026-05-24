@@ -1,0 +1,12 @@
+checkpoints*/
+value_checkpoints*/
+generator_checkpoints*/
+trajectories/
+eval_results/
+data/*.jsonl
+wandb/
+__pycache__/
+*.pyc
+*.pt
+*.pth
+debug_rollout_*

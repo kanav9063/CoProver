@@ -1,0 +1,41 @@
+# Co-Training Loop Configuration
+
+co_training:
+  num_rounds: 5
+  grpo_start_round: 0
+
+models:
+  generator:
+    base: /workspace/models/DeepSeek-Prover-V2-7B
+    checkpoint_dir: /workspace/training/generator_checkpoints
+  value:
+    base: meta-llama/Llama-3.2-1B
+    checkpoint_dir: /workspace/training/value_checkpoints
+
+proof_search:
+  theorems_path: /workspace/training/data/lean_whole_proof.jsonl
+  num_theorems_per_round: 5000
+  n_samples: 8
+  max_tokens: 4096
+  temperature: 0.8
+
+servers:
+  sglang_port: 30000
+  sglang_tp: 4
+  kimina_url: http://localhost:8000
+  value_model_port: 30001
+
+evaluation:
+  dataset: /workspace/training/data/minif2f_test.jsonl
+  n_samples: 8
+  benchmarks:
+    - minif2f_test
+    - putnam_bench
+
+trajectories:
+  dir: /workspace/training/trajectories
+  oversample_positive: 3  # oversample proved examples by this factor
+
+wandb:
+  project: lean-co-training
+  group: co-train-v1

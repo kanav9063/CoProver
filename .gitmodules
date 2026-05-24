@@ -1,0 +1,30 @@
+[submodule "deps/slime"]
+	path = deps/slime
+	url = https://github.com/THUDM/slime.git
+[submodule "deps/LeanDojo"]
+	path = deps/LeanDojo
+	url = https://github.com/lean-dojo/LeanDojo.git
+[submodule "deps/ReProver"]
+	path = deps/ReProver
+	url = https://github.com/lean-dojo/ReProver.git
+[submodule "deps/kimina-lean-server"]
+	path = deps/kimina-lean-server
+	url = https://github.com/project-numina/kimina-lean-server.git
+[submodule "deps/kimina-prover-rl"]
+	path = deps/kimina-prover-rl
+	url = https://github.com/project-numina/kimina-prover-rl.git
+[submodule "deps/DeepSeek-Prover-V1.5"]
+	path = deps/DeepSeek-Prover-V1.5
+	url = https://github.com/deepseek-ai/DeepSeek-Prover-V1.5.git
+[submodule "deps/InternLM-Math"]
+	path = deps/InternLM-Math
+	url = https://github.com/InternLM/InternLM-Math.git
+[submodule "deps/ntptutorial"]
+	path = deps/ntptutorial
+	url = https://github.com/wellecks/ntptutorial.git
+[submodule "deps/LeanCopilot"]
+	path = deps/LeanCopilot
+	url = https://github.com/lean-dojo/LeanCopilot.git
+[submodule "deps/Kimina-Prover-Preview"]
+	path = deps/Kimina-Prover-Preview
+	url = https://github.com/MoonshotAI/Kimina-Prover-Preview.git
