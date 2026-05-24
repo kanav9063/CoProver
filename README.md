@@ -218,6 +218,34 @@ coprover/
 
 ## Quick Start
 
+### Minimal prover smoke test
+
+If you want to exercise the prompt and verification path without downloading the
+full MiniF2F split, use the checked-in fixture at `examples/minif2f_smoke.jsonl`.
+It follows the same `formal_statement` / `prompt` schema produced by
+`prepare_minif2f.py`, so it is safe to swap into `evaluate.py` or other
+whole-proof scripts.
+
+```bash
+python3 evaluate.py \
+  --dataset examples/minif2f_smoke.jsonl \
+  --sglang-url http://localhost:30000 \
+  --kimina-url http://localhost:8000 \
+  --n-samples 4 \
+  --max-problems 2 \
+  --output results/minif2f_smoke.json
+```
+
+The fixture is intentionally tiny:
+
+- `nat_add_comm_small` is a familiar arithmetic theorem that should verify
+  cleanly when the model emits a standard `simpa [Nat.add_comm]` proof.
+- `list_append_nil_small` checks that the model can finish a simple theorem
+  over `List`, which is a useful sanity check before moving to MiniF2F-scale
+  evaluation.
+
+For the full benchmark and Kimina promptset, run:
+
 ```bash
 # 1. Pull images
 docker pull slimerl/slime:latest
