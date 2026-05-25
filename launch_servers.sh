@@ -16,13 +16,14 @@
 #   GENERATOR_MODEL=/workspace/models/DeepSeek-Prover-V2-7B
 #   VALUE_MODEL=/workspace/models/Llama-3.2-1B
 
-set -uo pipefail
+set -euo pipefail
 
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
 
 WORKSPACE="${WORKSPACE:-/mnt/filesystem-m5/formal}"
+TRAINING_DIR="${WORKSPACE}/training"
 KIMINA_IMAGE="${KIMINA_IMAGE:-kimina-lean-server:latest}"
 KIMINA_CONTAINER="${KIMINA_CONTAINER:-kimina-lean-server}"
 KIMINA_PORT="${KIMINA_PORT:-8000}"
@@ -36,6 +37,8 @@ SGLANG_GEN_DP="${SGLANG_GEN_DP:-8}"
 SGLANG_VAL_DP="${SGLANG_VAL_DP:-1}"
 
 HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-180}"
+DOCKER_BIN=""
+PYTHON_BIN=""
 
 # Parse flags
 START_KIMINA=true
@@ -54,12 +57,57 @@ done
 # ---------------------------------------------------------------------------
 
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+    local ts
+    ts="$(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo 'time-unavailable')"
+    echo "[${ts}] $*"
 }
 
 die() {
     log "FATAL: $*" >&2
     exit 1
+}
+
+require_cmd() {
+    local cmd="$1"
+    command -v "$cmd" >/dev/null 2>&1 || die "Required command not found: ${cmd}"
+}
+
+init_docker_bin() {
+    if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+        DOCKER_BIN="docker"
+        return 0
+    fi
+
+    if command -v sudo >/dev/null 2>&1 && sudo -n docker info >/dev/null 2>&1; then
+        DOCKER_BIN="sudo docker"
+        return 0
+    fi
+
+    die "Docker is unavailable. Install Docker or ensure this user can run 'docker info' (with or without passwordless sudo)."
+}
+
+init_python_bin() {
+    if command -v python >/dev/null 2>&1; then
+        PYTHON_BIN="python"
+        return 0
+    fi
+
+    if command -v python3 >/dev/null 2>&1; then
+        PYTHON_BIN="python3"
+        return 0
+    fi
+
+    die "Python interpreter not found. Install python3 or ensure 'python' is on PATH."
+}
+
+init_environment() {
+    require_cmd curl
+    require_cmd grep
+    require_cmd nohup
+    init_docker_bin
+    init_python_bin
+
+    mkdir -p "${TRAINING_DIR}" || die "Could not create training directory: ${TRAINING_DIR}"
 }
 
 wait_for_health() {
@@ -93,7 +141,7 @@ wait_for_health() {
 start_kimina() {
     log "--- Starting kimina-lean-server ---"
 
-    if docker ps --format '{{.Names}}' | grep -q "^${KIMINA_CONTAINER}$"; then
+    if $DOCKER_BIN ps --format '{{.Names}}' | grep -q "^${KIMINA_CONTAINER}$"; then
         log "kimina-lean-server is already running."
         wait_for_health "kimina-lean-server" \
             "http://localhost:${KIMINA_PORT}/health" \
@@ -103,13 +151,13 @@ start_kimina() {
     fi
 
     # Remove any stopped container with the same name
-    if docker ps -a --format '{{.Names}}' | grep -q "^${KIMINA_CONTAINER}$"; then
+    if $DOCKER_BIN ps -a --format '{{.Names}}' | grep -q "^${KIMINA_CONTAINER}$"; then
         log "Removing stopped kimina-lean-server container ..."
-        docker rm "${KIMINA_CONTAINER}" >/dev/null 2>&1
+        $DOCKER_BIN rm "${KIMINA_CONTAINER}" >/dev/null 2>&1
     fi
 
     log "Starting kimina-lean-server container (image: ${KIMINA_IMAGE}, GPU: ${KIMINA_GPU}) ..."
-    sudo docker run -d \
+    $DOCKER_BIN run -d \
         --name "${KIMINA_CONTAINER}" \
         --gpus "\"device=${KIMINA_GPU}\"" \
         -p "${KIMINA_PORT}:8000" \
@@ -145,15 +193,15 @@ start_sglang_generator() {
     fi
 
     log "Launching SGLang generator (model: ${GENERATOR_MODEL}, port: ${SGLANG_GEN_PORT}, dp: ${SGLANG_GEN_DP}) ..."
-    nohup python -m sglang.launch_server \
+    nohup "$PYTHON_BIN" -m sglang.launch_server \
         --model-path "${GENERATOR_MODEL}" \
         --port "${SGLANG_GEN_PORT}" \
         --dp "${SGLANG_GEN_DP}" \
-        > "${WORKSPACE}/training/sglang_generator.log" 2>&1 &
+        > "${TRAINING_DIR}/sglang_generator.log" 2>&1 &
 
     local pid=$!
     log "SGLang generator PID: ${pid}"
-    echo "${pid}" > "${WORKSPACE}/training/.sglang_generator.pid"
+    echo "${pid}" > "${TRAINING_DIR}/.sglang_generator.pid"
 
     wait_for_health "SGLang generator" \
         "http://localhost:${SGLANG_GEN_PORT}/health" \
@@ -179,15 +227,15 @@ start_sglang_value() {
     fi
 
     log "Launching SGLang value model (model: ${VALUE_MODEL}, port: ${SGLANG_VAL_PORT}, dp: ${SGLANG_VAL_DP}) ..."
-    nohup python -m sglang.launch_server \
+    nohup "$PYTHON_BIN" -m sglang.launch_server \
         --model-path "${VALUE_MODEL}" \
         --port "${SGLANG_VAL_PORT}" \
         --dp "${SGLANG_VAL_DP}" \
-        > "${WORKSPACE}/training/sglang_value.log" 2>&1 &
+        > "${TRAINING_DIR}/sglang_value.log" 2>&1 &
 
     local pid=$!
     log "SGLang value model PID: ${pid}"
-    echo "${pid}" > "${WORKSPACE}/training/.sglang_value.pid"
+    echo "${pid}" > "${TRAINING_DIR}/.sglang_value.pid"
 
     wait_for_health "SGLang value model" \
         "http://localhost:${SGLANG_VAL_PORT}/health" \
@@ -200,6 +248,7 @@ start_sglang_value() {
 # ---------------------------------------------------------------------------
 
 log "=== Server Launcher ==="
+init_environment
 
 FAILED=0
 
