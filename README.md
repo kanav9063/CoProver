@@ -232,7 +232,7 @@ python3 evaluate.py \
   --sglang-url http://localhost:30000 \
   --kimina-url http://localhost:8000 \
   --n-samples 4 \
-  --max-problems 2 \
+  --max-problems 3 \
   --output results/minif2f_smoke.json
 ```
 
@@ -243,6 +243,9 @@ The fixture is intentionally tiny:
 - `list_append_nil_small` checks that the model can finish a simple theorem
   over `List`, which is a useful sanity check before moving to MiniF2F-scale
   evaluation.
+- `and_left_small` exercises proposition-style proof search with a named
+  hypothesis, which catches prompt or verifier regressions that equality-only
+  smoke tests can miss.
 
 For the full benchmark and Kimina promptset, run:
 
