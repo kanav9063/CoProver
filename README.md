@@ -232,7 +232,7 @@ python3 evaluate.py \
   --sglang-url http://localhost:30000 \
   --kimina-url http://localhost:8000 \
   --n-samples 4 \
-  --max-problems 3 \
+  --max-problems 4 \
   --output results/minif2f_smoke.json
 ```
 
@@ -246,6 +246,9 @@ The fixture is intentionally tiny:
 - `and_left_small` exercises proposition-style proof search with a named
   hypothesis, which catches prompt or verifier regressions that equality-only
   smoke tests can miss.
+- `exists_witness_small` checks witness construction for an existential goal,
+  which is a lightweight way to catch regressions in constructor-style proofs
+  before moving on to full MiniF2F preparation.
 
 For the full benchmark and Kimina promptset, run:
 
