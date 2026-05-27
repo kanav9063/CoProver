@@ -37,14 +37,17 @@ DOCKER_RUN := sudo docker run --rm \
 # Targets
 # ---------------------------------------------------------------------------
 
-.PHONY: help setup data convert train-generator train-value collect eval \
-        co-train status kill clean
+.PHONY: help preflight setup data convert train-generator train-value collect \
+        eval co-train status kill clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
 # --- Setup -----------------------------------------------------------------
+
+preflight: ## Check Docker, Python modules, workspace paths, and model dirs
+	@bash $(TRAINING_DIR)/check_setup.sh
 
 setup: ## Pull Docker images and start kimina-lean-server
 	@echo "==> Pulling Docker images ..."
