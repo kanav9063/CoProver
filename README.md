@@ -232,7 +232,7 @@ python3 evaluate.py \
   --sglang-url http://localhost:30000 \
   --kimina-url http://localhost:8000 \
   --n-samples 4 \
-  --max-problems 4 \
+  --max-problems 5 \
   --output results/minif2f_smoke.json
 ```
 
@@ -249,6 +249,9 @@ The fixture is intentionally tiny:
 - `exists_witness_small` checks witness construction for an existential goal,
   which is a lightweight way to catch regressions in constructor-style proofs
   before moving on to full MiniF2F preparation.
+- `or_inl_small` checks disjunction introduction from a named hypothesis, which
+  is a compact sanity check for proposition-level branching before running the
+  full dataset.
 
 For the full benchmark and Kimina promptset, run:
 
