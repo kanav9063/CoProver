@@ -10,6 +10,7 @@ TRAINING_DIR="${WORKSPACE}/training"
 KIMINA_PORT="${KIMINA_PORT:-8000}"
 SGLANG_GEN_PORT="${SGLANG_GEN_PORT:-30000}"
 SGLANG_VAL_PORT="${SGLANG_VAL_PORT:-30001}"
+DOCKER_CMD=()
 
 BOLD='\033[1m'
 CYAN='\033[36m'
@@ -26,6 +27,20 @@ section() {
 ok()   { echo -e "  ${GREEN}[OK]${RESET} $1"; }
 fail() { echo -e "  ${RED}[FAIL]${RESET} $1"; }
 warn() { echo -e "  ${YELLOW}[WARN]${RESET} $1"; }
+
+init_docker_bin() {
+    if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+        DOCKER_CMD=(docker)
+        return 0
+    fi
+
+    if command -v sudo >/dev/null 2>&1 && sudo -n docker info >/dev/null 2>&1; then
+        DOCKER_CMD=(sudo docker)
+        return 0
+    fi
+
+    return 1
+}
 
 # ---------------------------------------------------------------------------
 # GPU Usage
@@ -49,13 +64,17 @@ fi
 
 section "Server Health"
 
+if ! init_docker_bin; then
+    warn "docker is unavailable; kimina container state checks will be skipped"
+fi
+
 # kimina-lean-server
 if curl -sf "http://localhost:${KIMINA_PORT}/health" >/dev/null 2>&1 || \
    curl -sf "http://localhost:${KIMINA_PORT}/api/check" >/dev/null 2>&1; then
     ok "kimina-lean-server (port ${KIMINA_PORT})"
 else
     # Check if Docker container is at least running
-    if docker ps --format '{{.Names}}' 2>/dev/null | grep -q kimina-lean-server; then
+    if [ ${#DOCKER_CMD[@]} -gt 0 ] && "${DOCKER_CMD[@]}" ps --format '{{.Names}}' 2>/dev/null | grep -q "^kimina-lean-server$"; then
         warn "kimina-lean-server container running but health check failed (port ${KIMINA_PORT})"
     else
         fail "kimina-lean-server not running (port ${KIMINA_PORT})"
@@ -79,7 +98,9 @@ else
 fi
 
 # Ray cluster
-if ray status &>/dev/null; then
+if ! command -v ray >/dev/null 2>&1; then
+    warn "ray CLI not found"
+elif ray status &>/dev/null; then
     ok "Ray cluster"
 else
     fail "Ray cluster not running"
@@ -94,9 +115,11 @@ section "Latest Training Step (from logs)"
 # Look for the most recent ray job log or any .log file
 find_latest_log() {
     # Check ray job logs first
-    local ray_log
-    ray_log=$(find /tmp/ray -name "*.log" -newer "${TRAINING_DIR}/Makefile" -type f 2>/dev/null | \
-              xargs ls -t 2>/dev/null | head -1)
+    local ray_log=""
+    if [ -d /tmp/ray ]; then
+        ray_log=$(find /tmp/ray -name "*.log" -type f -print 2>/dev/null | \
+                  xargs ls -t 2>/dev/null | head -1)
+    fi
     if [ -n "$ray_log" ]; then
         echo "$ray_log"
         return
