@@ -74,6 +74,15 @@ check_path() {
   fi
 }
 
+check_command() {
+  local cmd="$1"
+  if command -v "${cmd}" >/dev/null 2>&1; then
+    pass "command available: ${cmd}"
+  else
+    fail "required command missing from PATH: ${cmd}"
+  fi
+}
+
 check_python_module() {
   local module="$1"
   if "$PYTHON_BIN" -c "import ${module}" >/dev/null 2>&1; then
@@ -94,6 +103,9 @@ main() {
   check_path "launch helper" "${TRAINING_DIR}/launch_servers.sh"
   check_path "generator model dir" "${GENERATOR_MODEL}"
   check_path "value model dir" "${VALUE_MODEL}"
+  check_command curl
+  check_command grep
+  check_command nohup
 
   if [ -n "${PYTHON_BIN}" ]; then
     pass "python interpreter: $(command -v "${PYTHON_BIN}")"
