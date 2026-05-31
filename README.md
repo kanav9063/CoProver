@@ -257,6 +257,9 @@ The fixture is intentionally tiny:
 - `or_elim_small` checks disjunction elimination with two continuations, which
   is a lightweight way to exercise case-split reasoning before scaling up to
   full MiniF2F prompts.
+- `imp_chain_small` checks a tiny implication chain (`P -> Q -> R`), which is
+  a good smoke test for `intro` plus hypothesis application before running
+  larger theorem sets.
 
 For the full benchmark and Kimina promptset, run:
 
