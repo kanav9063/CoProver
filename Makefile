@@ -20,8 +20,9 @@ KIMINA_PORT     ?= 8000
 SGLANG_GEN_PORT ?= 30000
 SGLANG_VAL_PORT ?= 30001
 TRAINING_DIR    := $(WORKSPACE)/training
+DOCKER_BIN      := $(strip $(shell if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then echo docker; elif command -v sudo >/dev/null 2>&1 && sudo -n docker info >/dev/null 2>&1; then echo "sudo docker"; fi))
 
-DOCKER_RUN := sudo docker run --rm \
+DOCKER_RUN := $(DOCKER_BIN) run --rm \
 	--gpus all \
 	--ipc=host \
 	--shm-size=16g \
@@ -32,6 +33,13 @@ DOCKER_RUN := sudo docker run --rm \
 	-e PYTHONUNBUFFERED=1 \
 	-e WANDB_API_KEY=$(WANDB_API_KEY) \
 	-w /workspace/training
+
+define require_docker
+	@if [ -z "$(DOCKER_BIN)" ]; then \
+		echo "Docker is unavailable. Install Docker or configure passwordless sudo for docker." >&2; \
+		exit 1; \
+	fi
+endef
 
 # ---------------------------------------------------------------------------
 # Targets
@@ -50,9 +58,10 @@ preflight: ## Check Docker, Python modules, workspace paths, and model dirs
 	@bash $(TRAINING_DIR)/check_setup.sh
 
 setup: ## Pull Docker images and start kimina-lean-server
+	$(require_docker)
 	@echo "==> Pulling Docker images ..."
-	sudo docker pull $(DOCKER_IMAGE)
-	sudo docker pull $(KIMINA_IMAGE) 2>/dev/null || \
+	$(DOCKER_BIN) pull $(DOCKER_IMAGE)
+	$(DOCKER_BIN) pull $(KIMINA_IMAGE) 2>/dev/null || \
 		echo "WARNING: $(KIMINA_IMAGE) not found in registry; ensure it is built locally."
 	@echo "==> Starting servers ..."
 	bash $(TRAINING_DIR)/launch_servers.sh --kimina-only
@@ -60,12 +69,14 @@ setup: ## Pull Docker images and start kimina-lean-server
 # --- Data ------------------------------------------------------------------
 
 data: ## Download and prepare all datasets (runs inside Docker)
+	$(require_docker)
 	$(DOCKER_RUN) $(DOCKER_IMAGE) \
 		bash /workspace/training/prepare_all.sh
 
 # --- Conversion ------------------------------------------------------------
 
 convert: ## Convert HuggingFace weights to Megatron torch_dist format
+	$(require_docker)
 	@echo "==> Converting DeepSeek-Prover-V2-7B to Megatron format ..."
 	$(DOCKER_RUN) $(DOCKER_IMAGE) \
 		bash -c "cd /root/slime && PYTHONPATH=/root/Megatron-LM python tools/convert_hf_to_torch_dist.py \
@@ -80,16 +91,19 @@ convert: ## Convert HuggingFace weights to Megatron torch_dist format
 # --- Training --------------------------------------------------------------
 
 train-generator: ## Run GRPO training for the tactic generator
+	$(require_docker)
 	$(DOCKER_RUN) -it $(DOCKER_IMAGE) \
 		bash /workspace/training/train_step_grpo.sh
 
 train-value: ## Run value model SFT training
+	$(require_docker)
 	$(DOCKER_RUN) -it $(DOCKER_IMAGE) \
 		bash /workspace/training/train_value_slime.sh
 
 # --- Trajectory collection -------------------------------------------------
 
 collect: ## Run trajectory collection using the current generator
+	$(require_docker)
 	$(DOCKER_RUN) $(DOCKER_IMAGE) \
 		python /workspace/training/trajectory_collector.py \
 			--sglang-url http://host.docker.internal:$(SGLANG_GEN_PORT) \
@@ -99,6 +113,7 @@ collect: ## Run trajectory collection using the current generator
 # --- Evaluation ------------------------------------------------------------
 
 eval: ## Run MiniF2F evaluation against the current generator
+	$(require_docker)
 	$(DOCKER_RUN) $(DOCKER_IMAGE) \
 		python /workspace/training/evaluate.py \
 			--sglang-url http://host.docker.internal:$(SGLANG_GEN_PORT) \
@@ -116,13 +131,14 @@ status: ## Check training status (GPUs, servers, latest metrics, disk)
 	@bash $(TRAINING_DIR)/check_status.sh
 
 kill: ## Kill all training processes (ray, sglang, docker training containers)
+	$(require_docker)
 	@echo "==> Stopping ray ..."
 	-ray stop --force 2>/dev/null
 	-pkill -9 ray 2>/dev/null
 	@echo "==> Stopping sglang ..."
 	-pkill -9 sglang 2>/dev/null
 	@echo "==> Stopping training containers ..."
-	-sudo docker ps -q --filter ancestor=$(DOCKER_IMAGE) | xargs -r sudo docker kill
+	-$(DOCKER_BIN) ps -q --filter ancestor=$(DOCKER_IMAGE) | xargs -r $(DOCKER_BIN) kill
 	@echo "==> Done. All training processes killed."
 
 clean: ## Remove checkpoints and logs (asks for confirmation)
