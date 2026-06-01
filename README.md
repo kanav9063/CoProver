@@ -232,7 +232,7 @@ python3 evaluate.py \
   --sglang-url http://localhost:30000 \
   --kimina-url http://localhost:8000 \
   --n-samples 4 \
-  --max-problems 7 \
+  --max-problems 9 \
   --output results/minif2f_smoke.json
 ```
 
@@ -260,6 +260,9 @@ The fixture is intentionally tiny:
 - `imp_chain_small` checks a tiny implication chain (`P -> Q -> R`), which is
   a good smoke test for `intro` plus hypothesis application before running
   larger theorem sets.
+- `eq_rewrite_succ_small` checks direct rewriting through an equality
+  hypothesis, which is a compact sanity check for `rw`/`simpa`-style proofs
+  before moving on to larger arithmetic or algebra examples.
 
 For the full benchmark and Kimina promptset, run:
 
