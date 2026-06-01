@@ -40,6 +40,15 @@ HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-180}"
 DOCKER_CMD=()
 PYTHON_BIN=""
 
+usage() {
+    cat <<'EOF'
+Usage:
+  bash launch_servers.sh                # start all servers
+  bash launch_servers.sh --kimina-only  # start only kimina-lean-server
+  bash launch_servers.sh --sglang-only  # start only SGLang servers
+EOF
+}
+
 # Parse flags
 START_KIMINA=true
 START_SGLANG=true
@@ -48,7 +57,15 @@ for arg in "$@"; do
     case "$arg" in
         --kimina-only) START_SGLANG=false ;;
         --sglang-only) START_KIMINA=false ;;
-        *) echo "Unknown argument: $arg"; exit 1 ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown argument: $arg" >&2
+            usage >&2
+            exit 1
+            ;;
     esac
 done
 
@@ -246,6 +263,10 @@ start_sglang_value() {
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
+if [ "$START_KIMINA" = false ] && [ "$START_SGLANG" = false ]; then
+    die "choose either --kimina-only or --sglang-only, not both"
+fi
 
 log "=== Server Launcher ==="
 init_environment
