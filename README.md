@@ -232,7 +232,7 @@ python3 evaluate.py \
   --sglang-url http://localhost:30000 \
   --kimina-url http://localhost:8000 \
   --n-samples 4 \
-  --max-problems 9 \
+  --max-problems 10 \
   --output results/minif2f_smoke.json
 ```
 
@@ -263,6 +263,9 @@ The fixture is intentionally tiny:
 - `eq_rewrite_succ_small` checks direct rewriting through an equality
   hypothesis, which is a compact sanity check for `rw`/`simpa`-style proofs
   before moving on to larger arithmetic or algebra examples.
+- `false_elim_small` checks explosion from a contradictory hypothesis, which is
+  a lightweight sanity check for `exfalso`/`False.elim`-style proofs before
+  scaling to larger proposition-heavy benchmarks.
 
 For the full benchmark and Kimina promptset, run:
 
