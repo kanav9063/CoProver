@@ -42,6 +42,22 @@ init_docker_bin() {
     return 1
 }
 
+extract_latest_step() {
+    local log_file="$1"
+
+    awk '
+        BEGIN { IGNORECASE = 1 }
+        match($0, /(step|iter|iteration)[=: ]+[0-9]+/) {
+            latest = substr($0, RSTART, RLENGTH)
+        }
+        END {
+            if (latest != "") {
+                print latest
+            }
+        }
+    ' "$log_file" 2>/dev/null
+}
+
 # ---------------------------------------------------------------------------
 # GPU Usage
 # ---------------------------------------------------------------------------
@@ -132,7 +148,7 @@ LATEST_LOG=$(find_latest_log)
 if [ -n "$LATEST_LOG" ]; then
     echo "  Log: ${LATEST_LOG}"
     # Extract latest step/iteration info
-    STEP_LINE=$(grep -oP '(step|iter|iteration)[=: ]+\d+' "$LATEST_LOG" 2>/dev/null | tail -1)
+    STEP_LINE=$(extract_latest_step "$LATEST_LOG")
     if [ -n "$STEP_LINE" ]; then
         echo "  Latest: ${STEP_LINE}"
     else
