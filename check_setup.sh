@@ -12,6 +12,7 @@ TRAINING_DIR="${WORKSPACE}/training"
 GENERATOR_MODEL="${GENERATOR_MODEL:-${WORKSPACE}/models/DeepSeek-Prover-V2-7B}"
 VALUE_MODEL="${VALUE_MODEL:-${WORKSPACE}/models/Llama-3.2-1B}"
 KIMINA_IMAGE="${KIMINA_IMAGE:-kimina-lean-server:latest}"
+REQUIREMENTS_FILE="${TRAINING_DIR}/requirements.txt"
 
 DOCKER_CMD=()
 PYTHON_BIN=""
@@ -85,10 +86,15 @@ check_command() {
 
 check_python_module() {
   local module="$1"
+  local package_hint="${2:-$1}"
   if "$PYTHON_BIN" -c "import ${module}" >/dev/null 2>&1; then
     pass "python module '${module}' is importable via ${PYTHON_BIN}"
   else
-    fail "python module '${module}' is missing for ${PYTHON_BIN}; install requirements first"
+    if [ -f "${REQUIREMENTS_FILE}" ]; then
+      fail "python module '${module}' is missing for ${PYTHON_BIN}; install ${package_hint} via ${PYTHON_BIN} -m pip install -r ${REQUIREMENTS_FILE}"
+    else
+      fail "python module '${module}' is missing for ${PYTHON_BIN}; install package '${package_hint}'"
+    fi
   fi
 }
 
@@ -109,9 +115,18 @@ main() {
 
   if [ -n "${PYTHON_BIN}" ]; then
     pass "python interpreter: $(command -v "${PYTHON_BIN}")"
+    check_path "requirements file" "${REQUIREMENTS_FILE}"
     check_python_module requests
     check_python_module aiohttp
+    check_python_module datasets
+    check_python_module matplotlib
+    check_python_module numpy
     check_python_module sglang
+    check_python_module torch
+    check_python_module transformers
+    check_python_module wandb
+    check_python_module loguru
+    check_python_module lean_dojo lean-dojo
   fi
 
   if [ ${#DOCKER_CMD[@]} -gt 0 ]; then

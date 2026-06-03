@@ -4,6 +4,9 @@ transformers>=4.40
 datasets
 aiohttp
 requests
+sglang
+numpy
 matplotlib
 wandb
+loguru
 lean-dojo>=4.0
