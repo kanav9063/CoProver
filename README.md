@@ -232,7 +232,7 @@ python3 evaluate.py \
   --sglang-url http://localhost:30000 \
   --kimina-url http://localhost:8000 \
   --n-samples 4 \
-  --max-problems 10 \
+  --max-problems 11 \
   --output results/minif2f_smoke.json
 ```
 
@@ -266,6 +266,9 @@ The fixture is intentionally tiny:
 - `false_elim_small` checks explosion from a contradictory hypothesis, which is
   a lightweight sanity check for `exfalso`/`False.elim`-style proofs before
   scaling to larger proposition-heavy benchmarks.
+- `iff_forward_small` checks that the prover can project the forward direction
+  of an equivalence, which is a compact sanity check for `Iff.mp`/`h.mp` style
+  reasoning before moving on to larger proposition-heavy benchmarks.
 
 For the full benchmark and Kimina promptset, run:
 
