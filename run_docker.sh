@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Launch the SLIME docker container with the workspace mounted at /workspace.
+# The helper mirrors Makefile networking so host-side prover/model servers remain
+# reachable from inside the container via host.docker.internal.
 # Override defaults with WORKSPACE=/path DOCKER_IMAGE=image[:tag] bash run_docker.sh
 
 set -euo pipefail
@@ -32,6 +34,7 @@ echo "Launching ${DOCKER_IMAGE} with WORKSPACE=${WORKSPACE}"
   --shm-size=16g \
   --ulimit memlock=-1 \
   --ulimit stack=67108864 \
+  --add-host=host.docker.internal:host-gateway \
   -v "${WORKSPACE}:/workspace" \
   -w /workspace \
   -it "${DOCKER_IMAGE}" \

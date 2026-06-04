@@ -285,6 +285,7 @@ docker run -d --name kimina-lean-server \
 
 # 3. Enter SLIME container
 bash run_docker.sh
+# This shell can reach host-side services like kimina/SGLang via host.docker.internal.
 # or override defaults when your formal workspace lives elsewhere
 WORKSPACE=/mnt/filesystem-m5/formal DOCKER_IMAGE=slimerl/slime:latest bash run_docker.sh
 
