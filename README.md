@@ -232,7 +232,7 @@ python3 evaluate.py \
   --sglang-url http://localhost:30000 \
   --kimina-url http://localhost:8000 \
   --n-samples 4 \
-  --max-problems 11 \
+  --max-problems 12 \
   --output results/minif2f_smoke.json
 ```
 
@@ -269,6 +269,10 @@ The fixture is intentionally tiny:
 - `iff_forward_small` checks that the prover can project the forward direction
   of an equivalence, which is a compact sanity check for `Iff.mp`/`h.mp` style
   reasoning before moving on to larger proposition-heavy benchmarks.
+- `exists_elim_rewrite_small` checks existential elimination followed by
+  rewriting a hypothesis onto the target index, which is a useful smoke test
+  for `rcases` plus `rw at` style proof steps before scaling up to larger
+  theorem sets.
 
 For the full benchmark and Kimina promptset, run:
 
