@@ -7,8 +7,24 @@
 
 set -euo pipefail
 
-WORKSPACE="${WORKSPACE:-/mnt/filesystem-m5/formal}"
-TRAINING_DIR="${WORKSPACE}/training"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [ -n "${TRAINING_DIR:-}" ]; then
+  TRAINING_DIR="${TRAINING_DIR}"
+elif [ -n "${WORKSPACE:-}" ] && [ -f "${WORKSPACE}/training/check_setup.sh" ]; then
+  TRAINING_DIR="${WORKSPACE}/training"
+else
+  TRAINING_DIR="${SCRIPT_DIR}"
+fi
+
+if [ -n "${WORKSPACE:-}" ]; then
+  WORKSPACE="${WORKSPACE}"
+elif [ "$(basename "${TRAINING_DIR}")" = "training" ]; then
+  WORKSPACE="$(cd "${TRAINING_DIR}/.." && pwd)"
+else
+  WORKSPACE="${TRAINING_DIR}"
+fi
+
 GENERATOR_MODEL="${GENERATOR_MODEL:-${WORKSPACE}/models/DeepSeek-Prover-V2-7B}"
 VALUE_MODEL="${VALUE_MODEL:-${WORKSPACE}/models/Llama-3.2-1B}"
 KIMINA_IMAGE="${KIMINA_IMAGE:-kimina-lean-server:latest}"

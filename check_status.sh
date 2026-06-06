@@ -5,8 +5,24 @@
 
 set -uo pipefail
 
-WORKSPACE="${WORKSPACE:-/mnt/filesystem-m5/formal}"
-TRAINING_DIR="${WORKSPACE}/training"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [ -n "${TRAINING_DIR:-}" ]; then
+    TRAINING_DIR="${TRAINING_DIR}"
+elif [ -n "${WORKSPACE:-}" ] && [ -f "${WORKSPACE}/training/check_status.sh" ]; then
+    TRAINING_DIR="${WORKSPACE}/training"
+else
+    TRAINING_DIR="${SCRIPT_DIR}"
+fi
+
+if [ -n "${WORKSPACE:-}" ]; then
+    WORKSPACE="${WORKSPACE}"
+elif [ "$(basename "${TRAINING_DIR}")" = "training" ]; then
+    WORKSPACE="$(cd "${TRAINING_DIR}/.." && pwd)"
+else
+    WORKSPACE="${TRAINING_DIR}"
+fi
+
 KIMINA_PORT="${KIMINA_PORT:-8000}"
 SGLANG_GEN_PORT="${SGLANG_GEN_PORT:-30000}"
 SGLANG_VAL_PORT="${SGLANG_VAL_PORT:-30001}"

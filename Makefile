@@ -9,6 +9,9 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
+SCRIPT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+HOST_WORKSPACE := $(if $(filter training,$(notdir $(SCRIPT_DIR))),$(abspath $(SCRIPT_DIR)/..),$(SCRIPT_DIR))
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
@@ -55,7 +58,7 @@ help: ## Show this help
 # --- Setup -----------------------------------------------------------------
 
 preflight: ## Check Docker, Python modules, workspace paths, and model dirs
-	@bash $(TRAINING_DIR)/check_setup.sh
+	@WORKSPACE="$(HOST_WORKSPACE)" TRAINING_DIR="$(SCRIPT_DIR)" bash $(SCRIPT_DIR)/check_setup.sh
 
 setup: ## Pull Docker images and start kimina-lean-server
 	$(require_docker)
@@ -64,7 +67,7 @@ setup: ## Pull Docker images and start kimina-lean-server
 	$(DOCKER_BIN) pull $(KIMINA_IMAGE) 2>/dev/null || \
 		echo "WARNING: $(KIMINA_IMAGE) not found in registry; ensure it is built locally."
 	@echo "==> Starting servers ..."
-	bash $(TRAINING_DIR)/launch_servers.sh --kimina-only
+	WORKSPACE="$(HOST_WORKSPACE)" TRAINING_DIR="$(SCRIPT_DIR)" bash $(SCRIPT_DIR)/launch_servers.sh --kimina-only
 
 # --- Data ------------------------------------------------------------------
 
@@ -128,7 +131,7 @@ co-train: ## Run the full co-training loop (generator + value, multiple rounds)
 # --- Operations ------------------------------------------------------------
 
 status: ## Check training status (GPUs, servers, latest metrics, disk)
-	@bash $(TRAINING_DIR)/check_status.sh
+	@WORKSPACE="$(HOST_WORKSPACE)" TRAINING_DIR="$(SCRIPT_DIR)" bash $(SCRIPT_DIR)/check_status.sh
 
 kill: ## Kill all training processes (ray, sglang, docker training containers)
 	$(require_docker)
@@ -143,11 +146,11 @@ kill: ## Kill all training processes (ray, sglang, docker training containers)
 
 clean: ## Remove checkpoints and logs (asks for confirmation)
 	@echo "This will remove ALL checkpoint directories and log files under:"
-	@echo "  $(TRAINING_DIR)/checkpoints*"
-	@echo "  $(TRAINING_DIR)/value_checkpoints"
+	@echo "  $(SCRIPT_DIR)/checkpoints*"
+	@echo "  $(SCRIPT_DIR)/value_checkpoints"
 	@echo ""
 	@read -p "Are you sure? [y/N] " confirm && [ "$$confirm" = "y" ] || { echo "Aborted."; exit 1; }
-	rm -rf $(TRAINING_DIR)/checkpoints_v*/
-	rm -rf $(TRAINING_DIR)/value_checkpoints/
-	rm -f $(TRAINING_DIR)/*.log
+	rm -rf $(SCRIPT_DIR)/checkpoints_v*/
+	rm -rf $(SCRIPT_DIR)/value_checkpoints/
+	rm -f $(SCRIPT_DIR)/*.log
 	@echo "Cleaned."
