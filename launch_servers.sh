@@ -148,6 +148,8 @@ wait_for_health() {
     local url="$2"
     local alt_url="${3:-}"
     local timeout="${4:-$HEALTH_TIMEOUT}"
+    local pid="${5:-}"
+    local log_file="${6:-}"
 
     log "Waiting for ${name} to be healthy (timeout: ${timeout}s) ..."
     local deadline=$((SECONDS + timeout))
@@ -159,6 +161,14 @@ wait_for_health() {
         if [ -n "$alt_url" ] && curl -sf "${alt_url}" >/dev/null 2>&1; then
             log "${name} is ready."
             return 0
+        fi
+        if [ -n "${pid}" ] && ! kill -0 "${pid}" >/dev/null 2>&1; then
+            log "ERROR: ${name} exited before becoming healthy."
+            if [ -n "${log_file}" ] && [ -f "${log_file}" ]; then
+                log "Last lines from ${log_file}:"
+                tail -n 20 "${log_file}" | sed 's/^/[server-log] /'
+            fi
+            return 1
         fi
         sleep 5
     done
@@ -239,7 +249,9 @@ start_sglang_generator() {
     wait_for_health "SGLang generator" \
         "http://localhost:${SGLANG_GEN_PORT}/health" \
         "http://localhost:${SGLANG_GEN_PORT}/v1/models" \
-        "${HEALTH_TIMEOUT}"
+        "${HEALTH_TIMEOUT}" \
+        "${pid}" \
+        "${TRAINING_DIR}/sglang_generator.log"
 }
 
 # ---------------------------------------------------------------------------
@@ -273,7 +285,9 @@ start_sglang_value() {
     wait_for_health "SGLang value model" \
         "http://localhost:${SGLANG_VAL_PORT}/health" \
         "http://localhost:${SGLANG_VAL_PORT}/v1/models" \
-        "${HEALTH_TIMEOUT}"
+        "${HEALTH_TIMEOUT}" \
+        "${pid}" \
+        "${TRAINING_DIR}/sglang_value.log"
 }
 
 # ---------------------------------------------------------------------------
