@@ -105,6 +105,33 @@ require_cmd() {
     command -v "$cmd" >/dev/null 2>&1 || die "Required command not found: ${cmd}"
 }
 
+port_owner() {
+    local port="$1"
+
+    if command -v lsof >/dev/null 2>&1; then
+        lsof -nP -iTCP:"${port}" -sTCP:LISTEN 2>/dev/null | tail -n +2 | head -n 1
+        return 0
+    fi
+
+    if command -v netstat >/dev/null 2>&1; then
+        netstat -anv -p tcp 2>/dev/null | awk -v port=".${port}" '$4 ~ port && $6 == "LISTEN" { print; exit }'
+        return 0
+    fi
+
+    return 1
+}
+
+fail_if_port_busy() {
+    local name="$1"
+    local port="$2"
+    local details=""
+
+    details="$(port_owner "${port}" || true)"
+    if [ -n "${details}" ]; then
+        die "${name} cannot start because port ${port} is already in use: ${details}"
+    fi
+}
+
 init_docker_bin() {
     if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
         DOCKER_CMD=(docker)
@@ -199,6 +226,8 @@ start_kimina() {
         "${DOCKER_CMD[@]}" rm "${KIMINA_CONTAINER}" >/dev/null 2>&1
     fi
 
+    fail_if_port_busy "kimina-lean-server" "${KIMINA_PORT}"
+
     log "Starting kimina-lean-server container (image: ${KIMINA_IMAGE}, GPU: ${KIMINA_GPU}) ..."
     "${DOCKER_CMD[@]}" run -d \
         --name "${KIMINA_CONTAINER}" \
@@ -235,6 +264,8 @@ start_sglang_generator() {
         die "Generator model not found: ${GENERATOR_MODEL}"
     fi
 
+    fail_if_port_busy "SGLang generator" "${SGLANG_GEN_PORT}"
+
     log "Launching SGLang generator (model: ${GENERATOR_MODEL}, port: ${SGLANG_GEN_PORT}, dp: ${SGLANG_GEN_DP}) ..."
     nohup "$PYTHON_BIN" -m sglang.launch_server \
         --model-path "${GENERATOR_MODEL}" \
@@ -270,6 +301,8 @@ start_sglang_value() {
     if [ ! -d "${VALUE_MODEL}" ]; then
         die "Value model not found: ${VALUE_MODEL}"
     fi
+
+    fail_if_port_busy "SGLang value model" "${SGLANG_VAL_PORT}"
 
     log "Launching SGLang value model (model: ${VALUE_MODEL}, port: ${SGLANG_VAL_PORT}, dp: ${SGLANG_VAL_DP}) ..."
     nohup "$PYTHON_BIN" -m sglang.launch_server \
