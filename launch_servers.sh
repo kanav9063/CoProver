@@ -105,6 +105,17 @@ require_cmd() {
     command -v "$cmd" >/dev/null 2>&1 || die "Required command not found: ${cmd}"
 }
 
+has_any_cmd() {
+    local cmd
+    for cmd in "$@"; do
+        if command -v "$cmd" >/dev/null 2>&1; then
+            return 0
+        fi
+    done
+
+    return 1
+}
+
 port_owner() {
     local port="$1"
 
@@ -164,6 +175,9 @@ init_environment() {
     require_cmd curl
     require_cmd grep
     require_cmd nohup
+    if ! has_any_cmd lsof netstat; then
+        log "WARNING: neither lsof nor netstat is available; early busy-port diagnostics are disabled."
+    fi
     init_docker_bin
     init_python_bin
 

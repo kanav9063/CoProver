@@ -100,6 +100,21 @@ check_command() {
   fi
 }
 
+check_any_command() {
+  local description="$1"
+  shift
+
+  local cmd
+  for cmd in "$@"; do
+    if command -v "${cmd}" >/dev/null 2>&1; then
+      pass "${description}: ${cmd}"
+      return 0
+    fi
+  done
+
+  fail "${description} missing from PATH; install one of: $*"
+}
+
 check_python_module() {
   local module="$1"
   local package_hint="${2:-$1}"
@@ -128,6 +143,7 @@ main() {
   check_command curl
   check_command grep
   check_command nohup
+  check_any_command "port inspection helper for early launcher diagnostics" lsof netstat
 
   if [ -n "${PYTHON_BIN}" ]; then
     pass "python interpreter: $(command -v "${PYTHON_BIN}")"
