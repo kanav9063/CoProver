@@ -55,6 +55,8 @@ SGLANG_VAL_DP="${SGLANG_VAL_DP:-1}"
 HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-180}"
 DOCKER_CMD=()
 PYTHON_BIN=""
+SGLANG_GEN_PID_FILE=""
+SGLANG_VAL_PID_FILE=""
 
 usage() {
     cat <<'EOF'
@@ -98,6 +100,13 @@ log() {
 die() {
     log "FATAL: $*" >&2
     exit 1
+}
+
+remove_pid_file() {
+    local pid_file="$1"
+    if [ -n "${pid_file}" ] && [ -f "${pid_file}" ]; then
+        rm -f "${pid_file}"
+    fi
 }
 
 require_cmd() {
@@ -182,6 +191,8 @@ init_environment() {
     init_python_bin
 
     mkdir -p "${TRAINING_DIR}" || die "Could not create training directory: ${TRAINING_DIR}"
+    SGLANG_GEN_PID_FILE="${TRAINING_DIR}/.sglang_generator.pid"
+    SGLANG_VAL_PID_FILE="${TRAINING_DIR}/.sglang_value.pid"
 }
 
 wait_for_health() {
@@ -271,6 +282,7 @@ start_sglang_generator() {
     if curl -sf "http://localhost:${SGLANG_GEN_PORT}/health" >/dev/null 2>&1 || \
        curl -sf "http://localhost:${SGLANG_GEN_PORT}/v1/models" >/dev/null 2>&1; then
         log "SGLang generator is already running on port ${SGLANG_GEN_PORT}."
+        remove_pid_file "${SGLANG_GEN_PID_FILE}"
         return 0
     fi
 
@@ -289,14 +301,19 @@ start_sglang_generator() {
 
     local pid=$!
     log "SGLang generator PID: ${pid}"
-    echo "${pid}" > "${TRAINING_DIR}/.sglang_generator.pid"
+    echo "${pid}" > "${SGLANG_GEN_PID_FILE}"
 
-    wait_for_health "SGLang generator" \
+    if wait_for_health "SGLang generator" \
         "http://localhost:${SGLANG_GEN_PORT}/health" \
         "http://localhost:${SGLANG_GEN_PORT}/v1/models" \
         "${HEALTH_TIMEOUT}" \
         "${pid}" \
-        "${TRAINING_DIR}/sglang_generator.log"
+        "${TRAINING_DIR}/sglang_generator.log"; then
+        return 0
+    fi
+
+    remove_pid_file "${SGLANG_GEN_PID_FILE}"
+    return 1
 }
 
 # ---------------------------------------------------------------------------
@@ -309,6 +326,7 @@ start_sglang_value() {
     if curl -sf "http://localhost:${SGLANG_VAL_PORT}/health" >/dev/null 2>&1 || \
        curl -sf "http://localhost:${SGLANG_VAL_PORT}/v1/models" >/dev/null 2>&1; then
         log "SGLang value model is already running on port ${SGLANG_VAL_PORT}."
+        remove_pid_file "${SGLANG_VAL_PID_FILE}"
         return 0
     fi
 
@@ -327,14 +345,19 @@ start_sglang_value() {
 
     local pid=$!
     log "SGLang value model PID: ${pid}"
-    echo "${pid}" > "${TRAINING_DIR}/.sglang_value.pid"
+    echo "${pid}" > "${SGLANG_VAL_PID_FILE}"
 
-    wait_for_health "SGLang value model" \
+    if wait_for_health "SGLang value model" \
         "http://localhost:${SGLANG_VAL_PORT}/health" \
         "http://localhost:${SGLANG_VAL_PORT}/v1/models" \
         "${HEALTH_TIMEOUT}" \
         "${pid}" \
-        "${TRAINING_DIR}/sglang_value.log"
+        "${TRAINING_DIR}/sglang_value.log"; then
+        return 0
+    fi
+
+    remove_pid_file "${SGLANG_VAL_PID_FILE}"
+    return 1
 }
 
 # ---------------------------------------------------------------------------
