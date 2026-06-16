@@ -15,7 +15,7 @@
   <i>Learning not only what tactic to try, but which proof state to explore next.</i>
 </p>
 
-> **CONFIDENTIAL** — This repository contains proprietary research code. Trained models will be released on Hugging Face soon.
+>  Trained models will be released on Hugging Face soon.
 
 ---
 
