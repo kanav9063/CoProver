@@ -388,7 +388,7 @@ python compare_checkpoints.py \
 @misc{coprover2026,
   title={CoProver: Co-Training Proof Generation and Search Heuristics for Automated Theorem Proving},
   year={2026},
-  howpublished={\url{https://github.com/coprover}},
+  howpublished={\url{https://github.com/kanav9063/CoProver}},
 }
 ```
 
